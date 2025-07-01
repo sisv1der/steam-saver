@@ -61,13 +61,28 @@ STEAM_USER_PATH     = f'pfx/drive_c/users/steamuser/'
 SAVED_GAMES_PATH    = 'Saved Games/'
 ROAMING_PATH        = 'AppData/Roaming/'
 GAME_IDS            = [name for name in os.listdir(COMPATDATA_PATH) if os.path.isdir(os.path.join(COMPATDATA_PATH, name))]
-SAVES_PATHS         = [SAVED_GAMES_PATH, ROAMING_PATH]
 DATETIME_NOW        = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 COMMIT_MSG          = f'Backup {DATETIME_NOW}'
+SAVES_PATHS         = [
+    SAVED_GAMES_PATH,
+    ROAMING_PATH
+]
+EXCLUDE_DIRS        = [
+    'Microsoft',
+    'EasyAntiCheat'
+]
+
+def get_exclude_args():
+    exclude_args = []
+    for dir in EXCLUDE_DIRS:
+        exclude_args.append(f'--exclude={dir}/')
+    return exclude_args
+
 
 def extract_save_data(compatdata_path, game_id, steam_user_path, save_data_path, target):
     src = os.path.join(compatdata_path, game_id, steam_user_path, save_data_path)
-    subprocess.run(['rsync', '-a', '--exclude=Microsoft/','--exclude=EasyAntiCheat/', f'{src}/', target], check=True)
+    rsync_command = ['rsync', '-a'] + get_exclude_args() + [f'{src}/', target]
+    subprocess.run(rsync_command, check=True)
 
 
 def sync_saves():
