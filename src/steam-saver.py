@@ -38,6 +38,9 @@ if not os.path.isdir(REPO_PATH):
     print("Error: Target directory does not exist.")
     sys.exit(1)
 
+if not os.path.isdir(os.path.join(REPO_PATH, '.git')):
+    sys.exit("Error: Target directory is not a Git repository.")
+
 def get_steam_path():
     FLATPAK_PATH    = os.path.expanduser('~/.var/app/com.valvesoftware.Steam/.local/share/Steam/')
     LOCAL_PATH      = os.path.expanduser('~/.local/share/Steam/')
