@@ -6,7 +6,7 @@ import sys
 import datetime
 
 
-args = sys.argv[1:]
+ARGS = sys.argv[1:]
 
 def print_help_page():
     HELP_TEXT = """
@@ -24,18 +24,18 @@ def print_help_page():
     print(HELP_TEXT)
 
 
-if len(args) == 0:
+if len(ARGS) == 0:
     print_help_page()
     sys.exit("Error: TARGET path not specified.")
 
-if ('-h' in args or '--help' in args):
+if ('-h' in ARGS or '--help' in ARGS):
     print_help_page()
     sys.exit(0)
 
-repo_path = args[0]
-commit_msg = f'Backup {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}'
+REPO_PATH = ARGS[0]
+COMMIT_MSG = f'Backup {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}'
 
-if not os.path.isdir(repo_path):
+if not os.path.isdir(REPO_PATH):
     print("Error: Target directory does not exist.")
     sys.exit(1)
 
@@ -69,13 +69,13 @@ SAVES_PATHS = [SAVED_GAMES_PATH, ROAMING_PATH]
 def sync_saves():
     for game_id in GAME_IDS:
         for path in SAVES_PATHS:
-            extract_save_data(COMPATDATA_PATH, game_id, STEAM_USER_PATH, path, target=repo_path)
+            extract_save_data(COMPATDATA_PATH, game_id, STEAM_USER_PATH, path, target=REPO_PATH)
 
 
 def git_commit():
-    subprocess.run(['git', '-C', repo_path, 'add', '.'], check=True)
+    subprocess.run(['git', '-C', REPO_PATH, 'add', '.'], check=True)
     try:
-        subprocess.run(['git', '-C', repo_path, 'commit', '-S', '-m', commit_msg], check=True)
+        subprocess.run(['git', '-C', REPO_PATH, 'commit', '-S', '-m', COMMIT_MSG], check=True)
     except subprocess.CalledProcessError as e:
         # commit may fail if there are no changes; ignore in that case
         pass
@@ -83,16 +83,16 @@ def git_commit():
 
 def git_pull():
     try:
-        subprocess.run(['git', '-C', repo_path, 'pull', '--rebase'], check=True)
+        subprocess.run(['git', '-C', REPO_PATH, 'pull', '--rebase'], check=True)
     except:
         git_commit()
     finally:
-        subprocess.run(['git', '-C', repo_path, 'pull', '--rebase'], check=True)
+        subprocess.run(['git', '-C', REPO_PATH, 'pull', '--rebase'], check=True)
 
 
 def git_push():
     try:
-        subprocess.run(['git', '-C', repo_path, 'push'], check=True)
+        subprocess.run(['git', '-C', REPO_PATH, 'push'], check=True)
     except subprocess.CalledProcessError as e:
         if ('nothing to commit' in str(e)):
             sys.exit('exiting: there is nothing to commit')
