@@ -33,7 +33,6 @@ if ('-h' in ARGS or '--help' in ARGS):
     sys.exit(0)
 
 REPO_PATH = ARGS[0]
-COMMIT_MSG = f'Backup {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}'
 
 if not os.path.isdir(REPO_PATH):
     print("Error: Target directory does not exist.")
@@ -54,17 +53,19 @@ def get_steam_path():
         raise Exception('Steam directory doesn\'t exist')
 
 
-def extract_save_data(compatdata_path, game_id, steam_user_path, save_data_path, target):
-    src = os.path.join(compatdata_path, game_id, steam_user_path, save_data_path)
-    subprocess.run(['rsync', '-a', '--exclude=Microsoft/','--exclude=EasyAntiCheat/', f'{src}/', target], check=True)
-
-
 COMPATDATA_PATH     = f'{get_steam_path()}steamapps/compatdata/'
 STEAM_USER_PATH     = f'pfx/drive_c/users/steamuser/'
 SAVED_GAMES_PATH    = 'Saved Games/'
 ROAMING_PATH        = 'AppData/Roaming/'
 GAME_IDS            = [name for name in os.listdir(COMPATDATA_PATH) if os.path.isdir(os.path.join(COMPATDATA_PATH, name))]
-SAVES_PATHS = [SAVED_GAMES_PATH, ROAMING_PATH]
+SAVES_PATHS         = [SAVED_GAMES_PATH, ROAMING_PATH]
+DATETIME_NOW        = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+COMMIT_MSG          = f'Backup {DATETIME_NOW}'
+
+def extract_save_data(compatdata_path, game_id, steam_user_path, save_data_path, target):
+    src = os.path.join(compatdata_path, game_id, steam_user_path, save_data_path)
+    subprocess.run(['rsync', '-a', '--exclude=Microsoft/','--exclude=EasyAntiCheat/', f'{src}/', target], check=True)
+
 
 def sync_saves():
     for game_id in GAME_IDS:
