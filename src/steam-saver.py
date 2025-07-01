@@ -5,6 +5,7 @@ import os
 import sys
 import datetime
 
+
 args = sys.argv[1:]
 
 def print_help_page():
@@ -22,6 +23,7 @@ def print_help_page():
     """
     print(HELP_TEXT)
 
+
 if len(args) == 0:
     print_help_page()
     sys.exit("Error: TARGET path not specified.")
@@ -30,7 +32,10 @@ if ('-h' in args or '--help' in args):
     print_help_page()
     sys.exit(0)
 
-if not os.path.isdir(args[0]):
+repo_path = args[0]
+commit_msg = f'Backup {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}'
+
+if not os.path.isdir(repo_path):
     print("Error: Target directory does not exist.")
     sys.exit(1)
 
@@ -48,21 +53,46 @@ def get_steam_path():
     else:
         raise Exception('Steam directory doesn\'t exist')
 
+
 def extract_save_data(compatdata_path, game_id, steam_user_path, save_data_path, target):
     src = os.path.join(compatdata_path, game_id, steam_user_path, save_data_path)
     subprocess.run(['rsync', '-a', '--exclude=Microsoft/','--exclude=EasyAntiCheat/', f'{src}/', target], check=True)
 
-def backup_git():
-    commit_msg = f'Backup {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}'
+
+COMPATDATA_PATH     = f'{get_steam_path()}steamapps/compatdata/'
+STEAM_USER_PATH     = f'pfx/drive_c/users/steamuser/'
+SAVED_GAMES_PATH    = 'Saved Games/'
+ROAMING_PATH        = 'AppData/Roaming/'
+GAME_IDS            = [name for name in os.listdir(COMPATDATA_PATH) if os.path.isdir(os.path.join(COMPATDATA_PATH, name))]
+SAVES_PATHS = [SAVED_GAMES_PATH, ROAMING_PATH]
+
+def sync_saves():
+    for game_id in GAME_IDS:
+        for path in SAVES_PATHS:
+            extract_save_data(COMPATDATA_PATH, game_id, STEAM_USER_PATH, path, target=repo_path)
+
+
+def git_commit():
+    subprocess.run(['git', '-C', repo_path, 'add', '.'], check=True)
     try:
-        subprocess.run(['git', '-C', args[0], 'pull', '--rebase'], check=True)
-        subprocess.run(['git', '-C', args[0], 'add', '.'], check=True)
-        try:
-            subprocess.run(['git', '-C', args[0], 'commit', '-S', '-m', commit_msg], check=True)
-        except subprocess.CalledProcessError as e:
-            # commit may fail if there are no changes; ignore in that case
-            pass
-        subprocess.run(['git', '-C', args[0], 'push'], check=True)
+        subprocess.run(['git', '-C', repo_path, 'commit', '-S', '-m', commit_msg], check=True)
+    except subprocess.CalledProcessError as e:
+        # commit may fail if there are no changes; ignore in that case
+        pass
+
+
+def git_pull():
+    try:
+        subprocess.run(['git', '-C', repo_path, 'pull', '--rebase'], check=True)
+    except:
+        git_commit()
+    finally:
+        subprocess.run(['git', '-C', repo_path, 'pull', '--rebase'], check=True)
+
+
+def git_push():
+    try:
+        subprocess.run(['git', '-C', repo_path, 'push'], check=True)
     except subprocess.CalledProcessError as e:
         if ('nothing to commit' in str(e)):
             sys.exit('exiting: there is nothing to commit')
@@ -70,20 +100,19 @@ def backup_git():
         else:
             raise e
 
-COMPATDATA_PATH     = f'{get_steam_path()}steamapps/compatdata/'
-STEAM_USER_PATH     = f'pfx/drive_c/users/steamuser/'
-SAVED_GAMES_PATH    = 'Saved Games/'
-ROAMING_PATH        = 'AppData/Roaming/'
-GAME_IDS            = [name for name in os.listdir(COMPATDATA_PATH) if os.path.isdir(os.path.join(COMPATDATA_PATH, name))]
 
-paths = [SAVED_GAMES_PATH, ROAMING_PATH]
+def git_backup():
+    git_commit()
+    git_push()
+
 
 def main():
-    for game_id in GAME_IDS:
-        for path in paths:
-            extract_save_data(COMPATDATA_PATH, game_id, STEAM_USER_PATH, path, target=args[0])
+    git_pull()
 
-    backup_git()
+    sync_saves()
+
+    git_backup()
+
 
 if __name__ == '__main__':
     main()
